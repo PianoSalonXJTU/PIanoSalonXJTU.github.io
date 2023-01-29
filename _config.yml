@@ -1,0 +1,99 @@
+# Site settings
+title: 归终的厨房
+SEOTitle: 归终的厨房 ｜ 精神夜宵
+header-img: img/home_kichen.jpg
+email: chengruisun@gmail.com
+description: "赶路匆忙，记得吃顿夜宵"
+keyword: "归终， 归终的厨房"
+url: "http://CR-Sun.github.io"          # your host, for absolute URL
+baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
+github_repo: "https://github.com/CR-Sun/CR-Sun.github.io.git" # you code repository
+
+# Sidebar settings
+sidebar: true                           # whether or not using Sidebar.
+sidebar-about-description: "八荒韫玉而明"
+sidebar-avatar: /img/avatar.jpg     # use absolute URL, seeing it's used in both `/` and `/about/`
+
+
+
+# SNS settings
+RSS: false
+# weibo_username:     qiubaiying
+#zhihu_username:     qiubaiying
+github_username:    CR-Sun
+#facebook_username:  baiying.qiu.7
+#jianshu_username:   e71990ada2fd
+#twitter_username:   qiubaiying
+
+
+
+
+# Build settings
+# from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
+permalink: pretty
+paginate: 10
+exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
+anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+
+
+
+# Gems
+# from PR#40, to support local preview for Jekyll 3.0
+gems: [jekyll-paginate]
+
+
+
+
+# Markdown settings
+# replace redcarpet to kramdown,
+# although redcarpet can auto highlight code, the lack of header-id make the catalog impossible, so I switch to kramdown
+# document: http://jekyllrb.com/docs/configuration/#kramdown
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM                            # use Github Flavored Markdown !important
+
+
+
+# 评论系统
+# Disqus（https://disqus.com/）
+# disqus_username: qiubaiying
+
+# Gitalk
+gitalk:
+  enable: true    #是否开启Gitalk评论
+  clientID: 1fc450210f92de8e79a7                            #生成的clientID
+  clientSecret: cf51b8b2064ca7c46dc0ec77ff582924aac1a23f    #生成的clientSecret
+  repo: cr-sun.github.io    #仓库名称
+  owner: CR-Sun    #github用户名
+  admin: CR-Sun
+  distractionFreeMode: true #是否启用类似FB的阴影遮罩
+
+
+# 统计
+
+# Analytics settings
+# Baidu Analytics
+ba_track_id: 748e07cea1163601a0f7f096c1316a98
+
+# Google Analytics
+ga_track_id: 'UA-250880781-1'            # Format: UA-xxxxxx-xx
+ga_domain: chengrui.me              # 默认的是 auto, 这里我是自定义了的域名，你如果没有自己的域名，需要改成auto
+
+
+
+
+
+# Featured Tags
+featured-tags: true                     # 是否使用首页标签
+featured-condition-size: 1              # 相同标签数量大于这个数，才会出现在首页
+
+
+
+# Progressive Web Apps
+chrome-tab-theme-color: "#000000"
+service-worker: true
+
+
+
+# Friends

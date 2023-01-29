@@ -1,0 +1,409 @@
+---
+layout:     post
+title:      利用热传导方程处理数字图像
+subtitle:   利用Matlab和热传导方程的原理对图像做模糊或锐化处理
+date:       2021-12-31
+author:     Chengrui
+header-img: img/rick_blur.jpg
+catalog: true
+tags:
+    - 数学物理方法
+    - 图像处理
+    - Matlab
+---
+# 利用热传导方程处理数字图像
+
+牛顿冷却定律和傅里叶定理我们可以得到，一维空间中的热传导方程（heat-conduction equation）的一种定解问题（第一类边界）可以表示为 
+
+
+$$
+\begin{cases}
+
+u_t=a^2u_x+f,\ \ \ \ 0<x<l,t>0\\
+
+u(0,t)=0,u(l,t)=0,\ \ \ \ t\geq0\\
+
+u(x,0)=\varphi(x),\ \ \ \ 0\leq x\leq l
+
+\end{cases}
+$$
+
+
+其中，$a^2 = k/(\rho c)>0,f(x,t)=f_0(x,t)/c$ ，$a$是和热传导率有关的量，$f(x,t)$是和热源有关的量。
+
+这个方程刻画了导热体内部温度分布所服从的一般规律，我们利用课本第二章“分离变量法”的知识，可以通过求解特征值，特征函数，并通过正交分解求解初值ODE的方法求出这个方程的解。，从而求出导热体内部温度随空间和时间的分布。如果我们把思维打开，不仅仅局限于热传导方程的物理背景，而是将方程内部的数学关系抽象出来，我们就会发现这个方程具有很大的应用空间，比如在数字图像处理领域，如果我们将灰度图像的灰度值看作是温度，那么通过给定一个或正或负的热传导率，我们就可以对图像进行模糊或者尖锐化的处理：如果热传导率为正，那么一个邻域内的所有像素灰度值会趋于相同，这就是说图像的边界被模糊了；如果热传导率为负，那么一个区域内灰度的极差会趋近于无穷大，因为原始图像中灰度梯度最大的地方正是图形的边界处，这样我们就锐化了图像原本的边界。
+
+
+
+### 求解导热方程的另一种思路
+
+在介绍高斯滤波之前，我们有必要先介绍一个强大的数学工具：Fourier变换。
+
+
+
+##### Fourier变换的定义与性质
+
+###### 定义
+
+设 $f$ 是 $(-\infty,+\infty)$ 上的函数，在任意有限区间上只有有限个极值点和第一类间断点， $\int|f(x)| \mathrm{d} x<\infty$ (省略积分限代表从 $-\infty$ 到 $+\infty$ 积分，下同)，则 $f$ 的Fourier变换及其反演定义为
+$$
+\mathcal{F}\{f(x)\} \equiv \frac{1}{\sqrt{2 \pi}} \int f(x) \mathrm{e}^{-\mathrm{i} k x} \mathrm{~d} x=: F(k), k \in \mathbb{C}
+
+\$$
+$$
+
+$$
+{\mathcal{F}}^{-1}\{F(k)\} \equiv f(x)=\frac{1}{\sqrt{2 \pi}} \int F(k) \mathrm{e}^{\mathrm{i} x k} \mathrm{~d} k
+$$
+
+
+
+Fourier变换具有以下常用的性质:
+
+###### 有界性
+
+$F(k)$ 在 $(-\infty,+\infty)$ 上连续且 $\lim _{k \rightarrow \infty} F(k)=0$
+
+###### 线性
+
+$$
+\mathcal{F}\{\alpha f(x)+\beta g(x)\}=\alpha F(k)+\beta G(k), \alpha, \beta \in \mathbb{C}
+$$
+
+###### 微商性质
+
+$$
+\mathcal{F}\left\{f^{(n)}(x)\right\}=(\mathrm{i} k)^{n} \mathcal{F}\{f(x)\}
+$$
+
+###### 积分性质
+
+$$
+\mathcal{F}\left\{\int_{-\infty}^{x} f\left(x^{\prime}\right) \mathrm{d} x^{\prime}\right\}=\frac{1}{\mathrm{i} k} \mathcal{F}\{f(x)\}=\frac{1}{\mathrm{i} k} F(k)
+$$
+
+###### 卷积定理
+
+定义
+$$
+f * g(x) \equiv \frac{1}{\sqrt{2 \pi}} \int f\left(x^{\prime}\right) g\left(x-x^{\prime}\right) \mathrm{d} x^{\prime}
+$$
+为 $f, g$ 的卷积，则
+$$
+\mathcal{F}\{f * g\}=F(k) G(k)
+$$
+下面我们利用上面的知识先求解高斯函数的Fourier变换。
+
+##### 高斯函数
+
+高斯函数（Gaussian function）定义为
+$$
+g(x)=\mathrm{e}^{-\frac{a}{2} x^{2}}(a>0)
+$$
+其Fourier变换为
+$$
+G(k)=\frac{1}{\sqrt{a}} \mathrm{e}^{-\frac{k^{2}}{2 a}}
+$$
+证明： 
+
+定义式两边对 $k$ 求导可得 :
+$$
+\mathcal{F}\{x f(x)\}=\mathrm{i} F^{\prime}(k)
+$$
+于是 
+$$
+\begin{align*}
+
+​	G(k)&=\frac{1}{\sqrt{2 \pi}} \int \mathrm{e}^{-\frac{a}{2} x^{2}-\mathrm{i} k x} \mathrm{~d} x \\
+
+​	&=\frac{\mathrm{i}}{\sqrt{2 \pi} k} \int \mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{~d}\left(\mathrm{e}^{-\mathrm{i} k x}\right) \\
+
+​	&=\frac{\mathrm{i}}{\sqrt{2 \pi} k}\left[\left.\mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{e}^{-\mathrm{i} k x}\right|_{-\infty} ^{+\infty}-\int \mathrm{e}^{-\frac{a}{2} x^{2}-\mathrm{i} k x}(-a x) \mathrm{d} x\right]=\frac{\mathrm{i} a}{k} \mathcal{F}\left\{x \mathrm{e}^{-\frac{a}{2} x^{2}}\right\}=-\frac{a}{k} G^{\prime}(k)\\
+
+\end{align*}
+$$
+
+
+即
+$$
+G^{\prime}(k)+\frac{a}{k} G(k)=0
+$$
+解此微分方程得
+$$
+\begin{aligned}
+
+&G(k)=G(0) \mathrm{e}^{-\frac{k^{2}}{2 a}} \\
+
+&G(0)=\frac{1}{\sqrt{2 \pi}} \int \mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{~d} x=\frac{1}{\sqrt{a}}
+
+\end{aligned}
+$$
+证毕
+
+##### 利用Fourier变换求解一维导热方程}
+
+一维上的导热方程定解问题
+$$
+\begin{cases}
+
+\frac{\partial u}{\partial t}-\kappa \frac{\partial^{2} u}{\partial x^{2}}=0 & t>0,-\infty<x<+\infty \\
+
+\left.u\right|_{t=0}=\phi(x)& \\
+
+\left.u\right|_{x \rightarrow \infty}=0 &\text { 自然边界条件 }\\
+
+\end{cases}
+$$
+设
+$$
+\begin{aligned}
+
+&U(k, t)=\frac{1}{\sqrt{2 \pi}} \int u(x, t) \mathrm{e}^{-\mathrm{i} k x} \mathrm{~d} x=\mathcal{F}\{u\} \\
+
+&\Phi(k)=\mathcal{F}\{\phi(x)\}
+
+\end{aligned}
+$$
+则
+$$
+\mathcal{F}\left\{\frac{\partial u}{\partial t}\right\}=\frac{\mathrm{d} U}{\mathrm{~d} t}, \mathcal{F}\left\{\frac{\partial^{2} u}{\partial x^{2}}\right\}=-k^{2} U
+$$
+于是
+$$
+\begin{aligned}
+
+&\frac{\mathrm{d} U}{\mathrm{~d} t}+\kappa k^{2} U=0 \\
+
+&\left.U\right|_{t=0}=\Phi(k)
+
+\end{aligned}
+$$
+此常微分方程很容易求解。求解得到
+$$
+U(k, t)=\Phi(k) \mathrm{e}^{-\kappa t k^{2}}
+$$
+注意到
+$$
+\mathrm{e}^{-\kappa t k^{2}}=\frac{1}{\sqrt{2 \kappa t}} \mathcal{F}\left\{\mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}\right\}
+$$
+利用卷积定理可得
+
+
+$$
+u(x, t)=\frac{1}{\sqrt{2 \pi}} \phi(x) * \frac{1}{\sqrt{2 \kappa t}} \mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}
+$$
+
+
+观察可以发现$\frac{1}{\sqrt{2 \kappa t}} \mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}$这个形式就是高斯函数，所以这个式子可以改写为：
+$$
+u(x, t)=\phi(x) * K(x, t)
+$$
+
+
+其中 $K(x, t)$ 是高斯核，它的具体形式是:
+$$
+K(x, t)= \begin{cases}\frac{1}{2 a \sqrt{\pi t}} \exp \left(-\frac{x^{2}}{4 a^{2} t}\right) & (t>0) \\ 0 & (t<0)\end{cases}
+$$
+这样，我们利用Fourier变换和卷积定理给出了一维导热方程另一个形式的解。
+
+我们知道，对于一个线性系统，卷积的物理意义是：系统的响应是输入信号与系统单位脉冲响应的卷积。显然，给定输入$\phi(x)$，系统的响应就是这个输入信号与系统单位脉冲响应的卷积，不难看出，这个单位脉冲响应就是所谓的高斯核。通过后面对高斯滤波的介绍，我们会发现一个输入信号与高斯核的卷积，在离散化之后就是高斯滤波，这样我们就建立了高斯滤波与导热方程之间的联系。
+
+##### 高斯滤波简介
+
+高斯滤波（Gauss filter）实质上是一种信号的滤波器，其用途为信号的平滑处理，数字图像用于后期应用，其噪声是最大的问题，因为误差会累计传递等原因，高斯平滑滤波器对于抑制服从正态分布的噪声非常有效。
+
+在对二维图像进行高斯滤波时，我们需要将之前引入的高斯函数推广至二维，它具有如下的形式
+$$
+G(x, y)=e^{-\frac{x^{2}+y^{2}}{2 \sigma^{2}}}
+$$
+由于高斯函数的傅立叶变换仍是高斯函数， 因此高斯函数能构成一个在频域具有平滑性能的低通滤波器。可以通过在频域做乘积来实现高斯滤波。均值滤波是对信号进行局部平均， 以平均值来代表该像素点的灰度值。矩形滤波器对这个二维矢量的每一个分量进行独立的平滑处理。通过计算和转化 ，得到一幅单位矢量图。这个 512×512的矢量图被划分成一个 8×8的小区域 ，再在每一个小区域中 ，统计这个区域内的主要方向 ，亦即将对该区域内点方向数进行统计，最多的方向作为区域的主方向。于是就得到了一个新的64×64的矢量图。这个新的矢量图还可以采用一个 3×3模板进行进一步的平滑。
+
+我们从感性上也很容易理解这个过程，因为二维的高斯函数是各向同性的，用它对信号做卷积就是信号在某一点处的激励在二维平面上以各向同性传播并且与其他点处的激励相叠加的过程。这个过程就是给定每一点的温度的初始值和热传导率，所得到的时域上的响应。
+
+所以利用高斯滤波处理图像时，就可以将图像的灰度理解为温度，给定一个热传导率和时间步长就可以调整图像的模糊或锐化程度。
+
+对于数字图像，信号是离散化的，因此必须采用矩阵的卷积形式。对于矩阵，我们采用如下的高斯卷积核：
+$$
+\left[
+
+\begin{matrix}
+
+  \frac {1}{16} & \frac {2}{16} & \frac {1}{16}\\
+
+  \frac {2}{16} & \frac {4}{16} & \frac {2}{16}\\
+
+  \frac {1}{16} & \frac {2}{16} & \frac {1}{16}\\
+
+\end{matrix}
+
+\right]
+$$
+高斯平滑水平和垂直方向呈现高斯分布，更突出了中心点在像素平滑后的权重，相比于均值滤波而言，有着更好的平滑效果，对图像的每一个像素点用高斯核做卷积就可以得到高斯滤波后的图像。
+
+### 利用离散化的导热方程处理数字图像
+
+###### 问题引入
+
+根据第一节中的理论推导，我们知道，求解齐次导热方程本质上就是将初始条件和高斯核进行卷积；而对于图像灰度矩阵进行高斯核卷积，也就是高斯滤波，能将中心点的像素值用它周围的点的像素值的加权平均代替，使得图像边界变得更加模糊。因此，如果我们将图像矩阵看作是二维平面，每个像素的灰度就是平面上每个点的温度。在无外界热源干扰的情况下，经过一段时间后，平面上的温度分布对应的像素矩阵应当是一副和原图相比更加模糊的图像，而且时间越长，模糊程度越高。这就是利用导热方程进行图像模糊处理的基本思想。
+
+想要将导热方程应用到图像处理领域，我们需要解决一组关键的矛盾点：导热方程是关于连续函数的偏微分方程，而图像灰度矩阵是离散的。我们引入有限差分的方法对导热方程进行离散化。
+
+###### 差分方程
+
+在高等数学中，我们知道$f'(x)=\frac{f(x+h)-f(x)}{h}-f''(x)\frac{h}{2}+\dots $
+
+因此，如果$h$很小，我们便可以用$(x,f(x)),(x+h,f(x+h))$两点的斜率来近似表示$f'(x)$，即$\frac{f(x+h)-f(x)}{h}$。这引出了差分方程的基本思想，即：如果一个函数$f$是离散的，并且其函数值在$x$轴上是紧密分布的，这也就意味着其相邻两个函数值之间的坐标差$\Delta x$很小，我们便可以用相邻两个函数点之间的斜率来近似表示$f$在该点的导数，从而将微分方程转化为差分方程应用在离散函数上。下面，我们以一维导热方程为例来具体说明。
+$$
+\frac{\partial f}{\partial t}=a\frac{\partial^2 f}{\partial x^2},t\in[0,T],x\in[0,X]
+$$
+我们不妨用一个二维矩阵$F$来表示离散函数$f$，$F_i^n$表示离散函数$f(t_n,x_i)$的值，其中$t_{1\dots N}$满足$1\leq t_{n}<t_{n+1}\leq T$，且$\Delta t=t_{n+1}-t_n$很小；$x_{1\dots I}$满足$1\leq x_{i}<x_{i+1}\leq X$，且$\Delta x=x_{i+1}-x_i$很小。于是有：
+$$
+\frac{\partial f}{\partial t}\approx \frac{F^{n+1}_i-F^n_i}{\Delta t}\\
+
+\frac{\partial f}{\partial x}\approx \frac{F^{n}_{i+1}-F^n_i}{\Delta x}
+$$
+由于$\Delta x$很小，二阶导数可类似地作如下近似：
+$$
+\frac{\partial^2 f}{\partial x^2}\approx\frac{\frac{\partial f}{\partial x}\big |_{i}-\frac{\partial f}{\partial x}\big |_{i-1}}{\Delta x}
+$$
+再代入$\frac{\partial f}{\partial x}$的近似形式，可得到中心型差分：
+$$
+\frac{\partial^2 f}{\partial x^2}\approx\frac{F^{n}_{i+1}-2F^n_i+F^n_{i-1}}{(\Delta x)^2}
+$$
+将$\frac{\partial^2 f}{\partial x^2},\frac{\partial f}{\partial t}$的近似形式代回原微分方程，可得到其对应的差分方程：
+$$
+\frac{F^{n+1}_i-F^n_i}{\Delta t}=\frac{a(F^{n}_{i+1}-2F^n_i+F^n_{i-1})}{(\Delta x)^2}
+$$
+
+###### 二维热传导方程数值求解
+
+对于二维齐次热传导方程：
+$$
+\begin{cases}
+
+\frac{\partial I}{\partial t}=a\big(\frac{\partial^2 I}{\partial x^2}+\frac{\partial^2 I}{\partial y^2}\big)&0<x<X,0<y<Y,0<t<T\\
+
+I(t,x,y)=I^0(x,y)&t\geq 0,(x,y)\in\partial([0,X]\times[0,Y]) \\
+
+I(0,x,y)=I^0(x,y)&0\leq x\leq X,0\leq y\leq Y
+
+\end{cases}
+$$
+我们依照$2.2$中所述的方法，令矩阵$F^n_{i,j}$表示函数值$I(t_n,x_i,y_j)$，可得到差分方程：
+$$
+\begin{cases}
+
+\frac{F^{n+1}_{i,j}-F^n_{i,j}}{\Delta t}=a\big(\frac{F^{n}_{i+1,j}-2F^n_{i,j}+F^n_{i-1,j}}{h^2}+\frac{F^{n}_{i,j+1}-2F^n_{i,j}+F^n_{i,j-1}}{h^2}\big)&1<i<I,1<j<J,0\leq n<N\\
+
+F^n_{i,j}=I^0_{i,j}&0\leq n\leq N,(i=1,I)\ \mathrm{or}\ (j=1,J)\\
+
+F^0_{i,j}=I^0_{i,j}&1\leq i\leq I,1\leq j\leq J
+
+\end{cases}
+$$
+观察差分方程可发现，方程$(1)$式中只含有一个$F^{n+1}$的项。这样的差分方程组称为显格式的差分方程组。对于该方程组，如果我们确切的知道$F^n$的所有值，即可直接计算出$F^{n+1}$的所有值。在进行图像模糊处理时，令$I^0$为图像的灰度矩阵，用matlab编程，逐一求出$F^{0\dots N}$。最终的灰度矩阵$F^N$即为模糊后的图像灰度矩阵。
+
+###### 隐格式差分方程的引入
+
+本节中，我们依然以一维导热方程为例来引入隐格式差分方程。在2.1节中，我们将一维导热方程离散化，得到近似的差分方程：
+$$
+\frac{F^{n+1}_i-F^n_i}{\Delta t}=\frac{a(F^{n}_{i+1}-2F^n_i+F^n_{i-1})}{(\Delta x)^2}
+$$
+上式中，左端是$F^{n+1}_i$和$F^n_i$两点在时间轴上的平均斜率，而右端则是在$t_n$时刻$F_i$对$x$的二阶导数。根据微分中值定理，$F^{n+1}_i$和$F^n_i$两点在时间轴上的平均斜率实际上应当是$F^{\delta}_i$对时间的一阶导数，这里$t_{\delta}$应当介于$t_n,t_{n+1}$之间。因此，如果我们将式右端更改在$t_{\delta}$时刻为$F_i$对$x$的二阶导数，该差分方程会更加精确。事实上，由于$F$是离散的，我们根本无从得知$\delta$，于是我们用在$t_n$时刻$F_i$对$x$的二阶导数、在$t_{n+1}$时刻$F_i$对$x$的二阶导数二者的平均值来近似表示$t_{\delta}$时刻的状态。显然，相比于$t_n$时刻$F_i$对$x$的二阶导数，$t_{n+1}$和$t_n$时刻导数的平均值是对$t_{\delta}$时刻导数的更好近似。差分方程改写为：
+$$
+\frac{F^{n+1}_i-F^n_i}{\Delta t}=\frac{a(\frac{F^{n}_{i+1}+F^{n+1}_{i+1}}{2}-(F^n_i+F^{n+1}_{i+1})+\frac{F^{n}_{i-1}+F^{n+1}_{i-1}}{2})}{(\Delta x)^2}
+$$
+该差分方程中，含有多个$F^{n+1}$的项，我们称这样的差分方程为显格式的差分方程。
+
+考虑如何对显格式的差分方程进行数值求解。初始时，我们知道$F^0$的所有值。假设我们已知$F^n$的所有值，考虑如何利用差分方程递推求出$F^{n+1}$。对该差分方程进行移项，将未知量写在等号左端，已知量写在右端，可得：
+$$
+\frac{\alpha\Delta t}{2(\Delta x)^2}F^{n+1}_{i-1}-\big(1+\frac{\alpha\Delta t}{(\Delta x)^2}\big)F^{n+1}_i+\frac{\alpha\Delta t}{2(\Delta x)^2}F^{n+1}_{i+1}=-F^n_i-\frac{\alpha\Delta t}{2(\Delta x)^2}(F^n_{i+1}-2F^n_i+F^n_{i-1})
+$$
+记
+$$
+A=\frac{\alpha\Delta t}{2(\Delta x)^2},B=\big(1+\frac{\alpha\Delta t}{(\Delta x)^2}\big),K_i=-F^n_i-\frac{\alpha\Delta t}{2(\Delta x)^2}(F^n_{i+1}-2F^n_i+F^n_{i-1})
+$$
+其中$A,B,K_i$都是常数，则方程可化简为：
+$$
+AF^{n+1}_{i-1}-BF^{n+1}_{i}+AF^{n+1}_{i+1}=K_i
+$$
+
+
+对于$i\in[1,I]$，可以列出$I$个形式相同的方程。于是，递推求$F^{n+1}$的问题转化为$I$个未知数$I$个方程的线性方程组求解问题。可用矩阵表示如下：
+$$
+\left[
+
+\begin{matrix}
+
+-B&A&0&0&\cdots&0\\
+
+A&-B&A&0&\cdots&0\\
+
+0&A&-B&A&\cdots&0\\
+
+\vdots&\vdots&\vdots&\vdots&\vdots&\vdots\\
+
+0&0&0&A&-B&A\\
+
+0&0&0&0&A&-B\\
+
+\end{matrix}
+
+\right]
+
+\left[
+
+\begin{matrix}
+
+F_1\\
+
+F_2\\
+
+F_3\\
+
+\vdots\\
+
+F_{I-1}\\
+
+F_{I}\\
+
+\end{matrix}
+
+\right]
+
+=
+
+\left[
+
+\begin{matrix}
+
+K_1\\
+
+K_2\\
+
+F_3\\
+
+\vdots\\
+
+K_{I-1}\\
+
+K_{I}\\
+
+\end{matrix}
+
+\right]
+$$
+采用Thomas方法求解上面的三对角阵即可。
+
+###### 二维热传导方程数值求解的隐格式优化
+
+我们将2.3节中所述的差分方程组变为隐格式，只需将方程式$(1)$更改为：
+$$
+\frac{F^{n+1}_{i,j}-F^n_{i,j}}{\Delta t}=a\big(\frac{\frac{F^{n}_{i+1,j}+F^{n+1}_{i+1,j}}{2}-(F^n_{i,j}+F^{n+1}_{i,j})+\frac{F^n_{i-1,j}+F^{n+1}_{i-1,j}}{2}}{h^2}+\frac{\frac{F^n_{i,j+1}+F^{n+1}_{i,j+1}}{2}-(F^n_{i,j}+F^{n+1}_{i,j})+\frac{F^n_{i,j-1}+F^{n+1}_{i,j-1}}{2}}{h^2}\big)
+$$
+求解该隐格式的差分方程，只需用2.4节中所述的方法：matlab编程，从小到大枚举$n$，逐一递推求出$F^n$。隐格式差分方程较显格式更为复杂，但由于在空间导数上使用了$n$和$n+1$时刻的平均值，其推进求解更为稳定，能更精确地模拟热传导的实际情况。
+
+
+
+
+

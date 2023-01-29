@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>归终的厨房</title>
+    <description>赶路匆忙，记得吃顿夜宵</description>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Thu, 01 Dec 2022 23:40:52 -0800</pubDate>
+    <lastBuildDate>Thu, 01 Dec 2022 23:40:52 -0800</lastBuildDate>
+    <generator>Jekyll v4.3.1</generator>
+    
+      <item>
+        <title>利用热传导方程处理数字图像</title>
+        <description>&lt;h1 id=&quot;利用热传导方程处理数字图像&quot;&gt;利用热传导方程处理数字图像&lt;/h1&gt;
+
+&lt;p&gt;牛顿冷却定律和傅里叶定理我们可以得到，一维空间中的热传导方程（heat-conduction equation）的一种定解问题（第一类边界）可以表示为&lt;/p&gt;
+
+\[\begin{cases}
+
+u_t=a^2u_x+f,\ \ \ \ 0&amp;lt;x&amp;lt;l,t&amp;gt;0\\
+
+u(0,t)=0,u(l,t)=0,\ \ \ \ t\geq0\\
+
+u(x,0)=\varphi(x),\ \ \ \ 0\leq x\leq l
+
+\end{cases}\]
+
+&lt;p&gt;其中，$a^2 = k/(\rho c)&amp;gt;0,f(x,t)=f_0(x,t)/c$ ，$a$是和热传导率有关的量，$f(x,t)$是和热源有关的量。&lt;/p&gt;
+
+&lt;p&gt;这个方程刻画了导热体内部温度分布所服从的一般规律，我们利用课本第二章“分离变量法”的知识，可以通过求解特征值，特征函数，并通过正交分解求解初值ODE的方法求出这个方程的解。，从而求出导热体内部温度随空间和时间的分布。如果我们把思维打开，不仅仅局限于热传导方程的物理背景，而是将方程内部的数学关系抽象出来，我们就会发现这个方程具有很大的应用空间，比如在数字图像处理领域，如果我们将灰度图像的灰度值看作是温度，那么通过给定一个或正或负的热传导率，我们就可以对图像进行模糊或者尖锐化的处理：如果热传导率为正，那么一个邻域内的所有像素灰度值会趋于相同，这就是说图像的边界被模糊了；如果热传导率为负，那么一个区域内灰度的极差会趋近于无穷大，因为原始图像中灰度梯度最大的地方正是图形的边界处，这样我们就锐化了图像原本的边界。&lt;/p&gt;
+
+&lt;h3 id=&quot;求解导热方程的另一种思路&quot;&gt;求解导热方程的另一种思路&lt;/h3&gt;
+
+&lt;p&gt;在介绍高斯滤波之前，我们有必要先介绍一个强大的数学工具：Fourier变换。&lt;/p&gt;
+
+&lt;h5 id=&quot;fourier变换的定义与性质&quot;&gt;Fourier变换的定义与性质&lt;/h5&gt;
+
+&lt;h6 id=&quot;定义&quot;&gt;定义&lt;/h6&gt;
+
+&lt;p&gt;设 $f$ 是 $(-\infty,+\infty)$ 上的函数，在任意有限区间上只有有限个极值点和第一类间断点， $\int|f(x)| \mathrm{d} x&amp;lt;\infty$ (省略积分限代表从 $-\infty$ 到 $+\infty$ 积分，下同)，则 $f$ 的Fourier变换及其反演定义为
+$$
+\mathcal{F}{f(x)} \equiv \frac{1}{\sqrt{2 \pi}} \int f(x) \mathrm{e}^{-\mathrm{i} k x} \mathrm{~d} x=: F(k), k \in \mathbb{C}&lt;/p&gt;
+
+&lt;p&gt;\(\)&lt;/p&gt;
+
+\[{\mathcal{F}}^{-1}\{F(k)\} \equiv f(x)=\frac{1}{\sqrt{2 \pi}} \int F(k) \mathrm{e}^{\mathrm{i} x k} \mathrm{~d} k\]
+
+&lt;p&gt;Fourier变换具有以下常用的性质:&lt;/p&gt;
+
+&lt;h6 id=&quot;有界性&quot;&gt;有界性&lt;/h6&gt;
+
+&lt;p&gt;$F(k)$ 在 $(-\infty,+\infty)$ 上连续且 $\lim _{k \rightarrow \infty} F(k)=0$&lt;/p&gt;
+
+&lt;h6 id=&quot;线性&quot;&gt;线性&lt;/h6&gt;
+
+\[\mathcal{F}\{\alpha f(x)+\beta g(x)\}=\alpha F(k)+\beta G(k), \alpha, \beta \in \mathbb{C}\]
+
+&lt;h6 id=&quot;微商性质&quot;&gt;微商性质&lt;/h6&gt;
+
+\[\mathcal{F}\left\{f^{(n)}(x)\right\}=(\mathrm{i} k)^{n} \mathcal{F}\{f(x)\}\]
+
+&lt;h6 id=&quot;积分性质&quot;&gt;积分性质&lt;/h6&gt;
+
+\[\mathcal{F}\left\{\int_{-\infty}^{x} f\left(x^{\prime}\right) \mathrm{d} x^{\prime}\right\}=\frac{1}{\mathrm{i} k} \mathcal{F}\{f(x)\}=\frac{1}{\mathrm{i} k} F(k)\]
+
+&lt;h6 id=&quot;卷积定理&quot;&gt;卷积定理&lt;/h6&gt;
+
+&lt;p&gt;定义
+\(f * g(x) \equiv \frac{1}{\sqrt{2 \pi}} \int f\left(x^{\prime}\right) g\left(x-x^{\prime}\right) \mathrm{d} x^{\prime}\)
+为 $f, g$ 的卷积，则
+\(\mathcal{F}\{f * g\}=F(k) G(k)\)
+下面我们利用上面的知识先求解高斯函数的Fourier变换。&lt;/p&gt;
+
+&lt;h5 id=&quot;高斯函数&quot;&gt;高斯函数&lt;/h5&gt;
+
+&lt;p&gt;高斯函数（Gaussian function）定义为
+\(g(x)=\mathrm{e}^{-\frac{a}{2} x^{2}}(a&amp;gt;0)\)
+其Fourier变换为
+\(G(k)=\frac{1}{\sqrt{a}} \mathrm{e}^{-\frac{k^{2}}{2 a}}\)
+证明：&lt;/p&gt;
+
+&lt;p&gt;定义式两边对 $k$ 求导可得 :
+\(\mathcal{F}\{x f(x)\}=\mathrm{i} F^{\prime}(k)\)
+于是 
+$$
+\begin{align*}&lt;/p&gt;
+
+&lt;p&gt;​	G(k)&amp;amp;=\frac{1}{\sqrt{2 \pi}} \int \mathrm{e}^{-\frac{a}{2} x^{2}-\mathrm{i} k x} \mathrm{~d} x \&lt;/p&gt;
+
+&lt;p&gt;​	&amp;amp;=\frac{\mathrm{i}}{\sqrt{2 \pi} k} \int \mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{~d}\left(\mathrm{e}^{-\mathrm{i} k x}\right) \&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;​	&amp;amp;=\frac{\mathrm{i}}{\sqrt{2 \pi} k}\left[\left.\mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{e}^{-\mathrm{i} k x}\right&lt;/td&gt;
+      &lt;td&gt;_{-\infty} ^{+\infty}-\int \mathrm{e}^{-\frac{a}{2} x^{2}-\mathrm{i} k x}(-a x) \mathrm{d} x\right]=\frac{\mathrm{i} a}{k} \mathcal{F}\left{x \mathrm{e}^{-\frac{a}{2} x^{2}}\right}=-\frac{a}{k} G^{\prime}(k)\&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;\end{align*}
+$$&lt;/p&gt;
+
+&lt;p&gt;即
+\(G^{\prime}(k)+\frac{a}{k} G(k)=0\)
+解此微分方程得
+$$
+\begin{aligned}&lt;/p&gt;
+
+&lt;p&gt;&amp;amp;G(k)=G(0) \mathrm{e}^{-\frac{k^{2}}{2 a}} \&lt;/p&gt;
+
+&lt;p&gt;&amp;amp;G(0)=\frac{1}{\sqrt{2 \pi}} \int \mathrm{e}^{-\frac{a}{2} x^{2}} \mathrm{~d} x=\frac{1}{\sqrt{a}}&lt;/p&gt;
+
+&lt;p&gt;\end{aligned}
+$$
+证毕&lt;/p&gt;
+
+&lt;h5 id=&quot;利用fourier变换求解一维导热方程&quot;&gt;利用Fourier变换求解一维导热方程}&lt;/h5&gt;
+
+&lt;p&gt;一维上的导热方程定解问题
+$$
+\begin{cases}&lt;/p&gt;
+
+&lt;p&gt;\frac{\partial u}{\partial t}-\kappa \frac{\partial^{2} u}{\partial x^{2}}=0 &amp;amp; t&amp;gt;0,-\infty&amp;lt;x&amp;lt;+\infty \&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;\left.u\right&lt;/td&gt;
+      &lt;td&gt;_{t=0}=\phi(x)&amp;amp; \&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;\left.u\right&lt;/td&gt;
+      &lt;td&gt;_{x \rightarrow \infty}=0 &amp;amp;\text { 自然边界条件 }\&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;\end{cases}
+\(设\)
+\begin{aligned}&lt;/p&gt;
+
+&lt;p&gt;&amp;amp;U(k, t)=\frac{1}{\sqrt{2 \pi}} \int u(x, t) \mathrm{e}^{-\mathrm{i} k x} \mathrm{~d} x=\mathcal{F}{u} \&lt;/p&gt;
+
+&lt;p&gt;&amp;amp;\Phi(k)=\mathcal{F}{\phi(x)}&lt;/p&gt;
+
+&lt;p&gt;\end{aligned}
+\(则\)
+\mathcal{F}\left{\frac{\partial u}{\partial t}\right}=\frac{\mathrm{d} U}{\mathrm{~d} t}, \mathcal{F}\left{\frac{\partial^{2} u}{\partial x^{2}}\right}=-k^{2} U
+\(于是\)
+\begin{aligned}&lt;/p&gt;
+
+&lt;p&gt;&amp;amp;\frac{\mathrm{d} U}{\mathrm{~d} t}+\kappa k^{2} U=0 \&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&amp;amp;\left.U\right&lt;/td&gt;
+      &lt;td&gt;_{t=0}=\Phi(k)&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;\end{aligned}
+\(此常微分方程很容易求解。求解得到\)
+U(k, t)=\Phi(k) \mathrm{e}^{-\kappa t k^{2}}
+\(注意到\)
+\mathrm{e}^{-\kappa t k^{2}}=\frac{1}{\sqrt{2 \kappa t}} \mathcal{F}\left{\mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}\right}
+$$
+利用卷积定理可得&lt;/p&gt;
+
+\[u(x, t)=\frac{1}{\sqrt{2 \pi}} \phi(x) * \frac{1}{\sqrt{2 \kappa t}} \mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}\]
+
+&lt;p&gt;观察可以发现$\frac{1}{\sqrt{2 \kappa t}} \mathrm{e}^{-\frac{x^{2}}{4 \kappa t}}$这个形式就是高斯函数，所以这个式子可以改写为：
+\(u(x, t)=\phi(x) * K(x, t)\)&lt;/p&gt;
+
+&lt;p&gt;其中 $K(x, t)$ 是高斯核，它的具体形式是:
+\(K(x, t)= \begin{cases}\frac{1}{2 a \sqrt{\pi t}} \exp \left(-\frac{x^{2}}{4 a^{2} t}\right) &amp;amp; (t&amp;gt;0) \\ 0 &amp;amp; (t&amp;lt;0)\end{cases}\)
+这样，我们利用Fourier变换和卷积定理给出了一维导热方程另一个形式的解。&lt;/p&gt;
+
+&lt;p&gt;我们知道，对于一个线性系统，卷积的物理意义是：系统的响应是输入信号与系统单位脉冲响应的卷积。显然，给定输入$\phi(x)$，系统的响应就是这个输入信号与系统单位脉冲响应的卷积，不难看出，这个单位脉冲响应就是所谓的高斯核。通过后面对高斯滤波的介绍，我们会发现一个输入信号与高斯核的卷积，在离散化之后就是高斯滤波，这样我们就建立了高斯滤波与导热方程之间的联系。&lt;/p&gt;
+
+&lt;h5 id=&quot;高斯滤波简介&quot;&gt;高斯滤波简介&lt;/h5&gt;
+
+&lt;p&gt;高斯滤波（Gauss filter）实质上是一种信号的滤波器，其用途为信号的平滑处理，数字图像用于后期应用，其噪声是最大的问题，因为误差会累计传递等原因，高斯平滑滤波器对于抑制服从正态分布的噪声非常有效。&lt;/p&gt;
+
+&lt;p&gt;在对二维图像进行高斯滤波时，我们需要将之前引入的高斯函数推广至二维，它具有如下的形式
+\(G(x, y)=e^{-\frac{x^{2}+y^{2}}{2 \sigma^{2}}}\)
+由于高斯函数的傅立叶变换仍是高斯函数， 因此高斯函数能构成一个在频域具有平滑性能的低通滤波器。可以通过在频域做乘积来实现高斯滤波。均值滤波是对信号进行局部平均， 以平均值来代表该像素点的灰度值。矩形滤波器对这个二维矢量的每一个分量进行独立的平滑处理。通过计算和转化 ，得到一幅单位矢量图。这个 512×512的矢量图被划分成一个 8×8的小区域 ，再在每一个小区域中 ，统计这个区域内的主要方向 ，亦即将对该区域内点方向数进行统计，最多的方向作为区域的主方向。于是就得到了一个新的64×64的矢量图。这个新的矢量图还可以采用一个 3×3模板进行进一步的平滑。&lt;/p&gt;
+
+&lt;p&gt;我们从感性上也很容易理解这个过程，因为二维的高斯函数是各向同性的，用它对信号做卷积就是信号在某一点处的激励在二维平面上以各向同性传播并且与其他点处的激励相叠加的过程。这个过程就是给定每一点的温度的初始值和热传导率，所得到的时域上的响应。&lt;/p&gt;
+
+&lt;p&gt;所以利用高斯滤波处理图像时，就可以将图像的灰度理解为温度，给定一个热传导率和时间步长就可以调整图像的模糊或锐化程度。&lt;/p&gt;
+
+&lt;p&gt;对于数字图像，信号是离散化的，因此必须采用矩阵的卷积形式。对于矩阵，我们采用如下的高斯卷积核：
+$$
+\left[&lt;/p&gt;
+
+&lt;p&gt;\begin{matrix}&lt;/p&gt;
+
+&lt;p&gt;\frac {1}{16} &amp;amp; \frac {2}{16} &amp;amp; \frac {1}{16}\&lt;/p&gt;
+
+&lt;p&gt;\frac {2}{16} &amp;amp; \frac {4}{16} &amp;amp; \frac {2}{16}\&lt;/p&gt;
+
+&lt;p&gt;\frac {1}{16} &amp;amp; \frac {2}{16} &amp;amp; \frac {1}{16}\&lt;/p&gt;
+
+&lt;p&gt;\end{matrix}&lt;/p&gt;
+
+&lt;p&gt;\right]
+$$
+高斯平滑水平和垂直方向呈现高斯分布，更突出了中心点在像素平滑后的权重，相比于均值滤波而言，有着更好的平滑效果，对图像的每一个像素点用高斯核做卷积就可以得到高斯滤波后的图像。&lt;/p&gt;
+
+&lt;h3 id=&quot;利用离散化的导热方程处理数字图像&quot;&gt;利用离散化的导热方程处理数字图像&lt;/h3&gt;
+
+&lt;h6 id=&quot;问题引入&quot;&gt;问题引入&lt;/h6&gt;
+
+&lt;p&gt;根据第一节中的理论推导，我们知道，求解齐次导热方程本质上就是将初始条件和高斯核进行卷积；而对于图像灰度矩阵进行高斯核卷积，也就是高斯滤波，能将中心点的像素值用它周围的点的像素值的加权平均代替，使得图像边界变得更加模糊。因此，如果我们将图像矩阵看作是二维平面，每个像素的灰度就是平面上每个点的温度。在无外界热源干扰的情况下，经过一段时间后，平面上的温度分布对应的像素矩阵应当是一副和原图相比更加模糊的图像，而且时间越长，模糊程度越高。这就是利用导热方程进行图像模糊处理的基本思想。&lt;/p&gt;
+
+&lt;p&gt;想要将导热方程应用到图像处理领域，我们需要解决一组关键的矛盾点：导热方程是关于连续函数的偏微分方程，而图像灰度矩阵是离散的。我们引入有限差分的方法对导热方程进行离散化。&lt;/p&gt;
+
+&lt;h6 id=&quot;差分方程&quot;&gt;差分方程&lt;/h6&gt;
+
+&lt;p&gt;在高等数学中，我们知道$f’(x)=\frac{f(x+h)-f(x)}{h}-f’‘(x)\frac{h}{2}+\dots $&lt;/p&gt;
+
+&lt;p&gt;因此，如果$h$很小，我们便可以用$(x,f(x)),(x+h,f(x+h))$两点的斜率来近似表示$f’(x)$，即$\frac{f(x+h)-f(x)}{h}$。这引出了差分方程的基本思想，即：如果一个函数$f$是离散的，并且其函数值在$x$轴上是紧密分布的，这也就意味着其相邻两个函数值之间的坐标差$\Delta x$很小，我们便可以用相邻两个函数点之间的斜率来近似表示$f$在该点的导数，从而将微分方程转化为差分方程应用在离散函数上。下面，我们以一维导热方程为例来具体说明。
+\(\frac{\partial f}{\partial t}=a\frac{\partial^2 f}{\partial x^2},t\in[0,T],x\in[0,X]\)
+我们不妨用一个二维矩阵$F$来表示离散函数$f$，$F_i^n$表示离散函数$f(t_n,x_i)$的值，其中$t_{1\dots N}$满足$1\leq t_{n}&amp;lt;t_{n+1}\leq T$，且$\Delta t=t_{n+1}-t_n$很小；$x_{1\dots I}$满足$1\leq x_{i}&amp;lt;x_{i+1}\leq X$，且$\Delta x=x_{i+1}-x_i$很小。于是有：
+$$
+\frac{\partial f}{\partial t}\approx \frac{F^{n+1}_i-F^n_i}{\Delta t}\&lt;/p&gt;
+
+&lt;p&gt;\frac{\partial f}{\partial x}\approx \frac{F^{n}&lt;em&gt;{i+1}-F^n_i}{\Delta x}
+\(由于$\Delta x$很小，二阶导数可类似地作如下近似：\)
+\frac{\partial^2 f}{\partial x^2}\approx\frac{\frac{\partial f}{\partial x}\big |&lt;/em&gt;{i}-\frac{\partial f}{\partial x}\big |&lt;em&gt;{i-1}}{\Delta x}
+\(再代入$\frac{\partial f}{\partial x}$的近似形式，可得到中心型差分：\)
+\frac{\partial^2 f}{\partial x^2}\approx\frac{F^{n}&lt;/em&gt;{i+1}-2F^n_i+F^n_{i-1}}{(\Delta x)^2}
+\(将$\frac{\partial^2 f}{\partial x^2},\frac{\partial f}{\partial t}$的近似形式代回原微分方程，可得到其对应的差分方程：\)
+\frac{F^{n+1}&lt;em&gt;i-F^n_i}{\Delta t}=\frac{a(F^{n}&lt;/em&gt;{i+1}-2F^n_i+F^n_{i-1})}{(\Delta x)^2}
+$$&lt;/p&gt;
+
+&lt;h6 id=&quot;二维热传导方程数值求解&quot;&gt;二维热传导方程数值求解&lt;/h6&gt;
+
+&lt;p&gt;对于二维齐次热传导方程：
+$$
+\begin{cases}&lt;/p&gt;
+
+&lt;p&gt;\frac{\partial I}{\partial t}=a\big(\frac{\partial^2 I}{\partial x^2}+\frac{\partial^2 I}{\partial y^2}\big)&amp;amp;0&amp;lt;x&amp;lt;X,0&amp;lt;y&amp;lt;Y,0&amp;lt;t&amp;lt;T\&lt;/p&gt;
+
+&lt;p&gt;I(t,x,y)=I^0(x,y)&amp;amp;t\geq 0,(x,y)\in\partial([0,X]\times[0,Y]) \&lt;/p&gt;
+
+&lt;p&gt;I(0,x,y)=I^0(x,y)&amp;amp;0\leq x\leq X,0\leq y\leq Y&lt;/p&gt;
+
+&lt;p&gt;\end{cases}
+\(我们依照$2.2$中所述的方法，令矩阵$F^n_{i,j}$表示函数值$I(t_n,x_i,y_j)$，可得到差分方程：\)
+\begin{cases}&lt;/p&gt;
+
+&lt;p&gt;\frac{F^{n+1}&lt;em&gt;{i,j}-F^n&lt;/em&gt;{i,j}}{\Delta t}=a\big(\frac{F^{n}&lt;em&gt;{i+1,j}-2F^n&lt;/em&gt;{i,j}+F^n_{i-1,j}}{h^2}+\frac{F^{n}&lt;em&gt;{i,j+1}-2F^n&lt;/em&gt;{i,j}+F^n_{i,j-1}}{h^2}\big)&amp;amp;1&amp;lt;i&amp;lt;I,1&amp;lt;j&amp;lt;J,0\leq n&amp;lt;N\&lt;/p&gt;
+
+&lt;p&gt;F^n_{i,j}=I^0_{i,j}&amp;amp;0\leq n\leq N,(i=1,I)\ \mathrm{or}\ (j=1,J)\&lt;/p&gt;
+
+&lt;p&gt;F^0&lt;em&gt;{i,j}=I^0&lt;/em&gt;{i,j}&amp;amp;1\leq i\leq I,1\leq j\leq J&lt;/p&gt;
+
+&lt;p&gt;\end{cases}
+$$
+观察差分方程可发现，方程$(1)$式中只含有一个$F^{n+1}$的项。这样的差分方程组称为显格式的差分方程组。对于该方程组，如果我们确切的知道$F^n$的所有值，即可直接计算出$F^{n+1}$的所有值。在进行图像模糊处理时，令$I^0$为图像的灰度矩阵，用matlab编程，逐一求出$F^{0\dots N}$。最终的灰度矩阵$F^N$即为模糊后的图像灰度矩阵。&lt;/p&gt;
+
+&lt;h6 id=&quot;隐格式差分方程的引入&quot;&gt;隐格式差分方程的引入&lt;/h6&gt;
+
+&lt;p&gt;本节中，我们依然以一维导热方程为例来引入隐格式差分方程。在2.1节中，我们将一维导热方程离散化，得到近似的差分方程：
+\(\frac{F^{n+1}_i-F^n_i}{\Delta t}=\frac{a(F^{n}_{i+1}-2F^n_i+F^n_{i-1})}{(\Delta x)^2}\)
+上式中，左端是$F^{n+1}&lt;em&gt;i$和$F^n_i$两点在时间轴上的平均斜率，而右端则是在$t_n$时刻$F_i$对$x$的二阶导数。根据微分中值定理，$F^{n+1}_i$和$F^n_i$两点在时间轴上的平均斜率实际上应当是$F^{\delta}_i$对时间的一阶导数，这里$t&lt;/em&gt;{\delta}$应当介于$t_n,t_{n+1}$之间。因此，如果我们将式右端更改在$t_{\delta}$时刻为$F_i$对$x$的二阶导数，该差分方程会更加精确。事实上，由于$F$是离散的，我们根本无从得知$\delta$，于是我们用在$t_n$时刻$F_i$对$x$的二阶导数、在$t_{n+1}$时刻$F_i$对$x$的二阶导数二者的平均值来近似表示$t_{\delta}$时刻的状态。显然，相比于$t_n$时刻$F_i$对$x$的二阶导数，$t_{n+1}$和$t_n$时刻导数的平均值是对$t_{\delta}$时刻导数的更好近似。差分方程改写为：
+\(\frac{F^{n+1}_i-F^n_i}{\Delta t}=\frac{a(\frac{F^{n}_{i+1}+F^{n+1}_{i+1}}{2}-(F^n_i+F^{n+1}_{i+1})+\frac{F^{n}_{i-1}+F^{n+1}_{i-1}}{2})}{(\Delta x)^2}\)
+该差分方程中，含有多个$F^{n+1}$的项，我们称这样的差分方程为显格式的差分方程。&lt;/p&gt;
+
+&lt;p&gt;考虑如何对显格式的差分方程进行数值求解。初始时，我们知道$F^0$的所有值。假设我们已知$F^n$的所有值，考虑如何利用差分方程递推求出$F^{n+1}$。对该差分方程进行移项，将未知量写在等号左端，已知量写在右端，可得：
+\(\frac{\alpha\Delta t}{2(\Delta x)^2}F^{n+1}_{i-1}-\big(1+\frac{\alpha\Delta t}{(\Delta x)^2}\big)F^{n+1}_i+\frac{\alpha\Delta t}{2(\Delta x)^2}F^{n+1}_{i+1}=-F^n_i-\frac{\alpha\Delta t}{2(\Delta x)^2}(F^n_{i+1}-2F^n_i+F^n_{i-1})\)
+记
+\(A=\frac{\alpha\Delta t}{2(\Delta x)^2},B=\big(1+\frac{\alpha\Delta t}{(\Delta x)^2}\big),K_i=-F^n_i-\frac{\alpha\Delta t}{2(\Delta x)^2}(F^n_{i+1}-2F^n_i+F^n_{i-1})\)
+其中$A,B,K_i$都是常数，则方程可化简为：
+\(AF^{n+1}_{i-1}-BF^{n+1}_{i}+AF^{n+1}_{i+1}=K_i\)&lt;/p&gt;
+
+&lt;p&gt;对于$i\in[1,I]$，可以列出$I$个形式相同的方程。于是，递推求$F^{n+1}$的问题转化为$I$个未知数$I$个方程的线性方程组求解问题。可用矩阵表示如下：
+$$
+\left[&lt;/p&gt;
+
+&lt;p&gt;\begin{matrix}&lt;/p&gt;
+
+&lt;p&gt;-B&amp;amp;A&amp;amp;0&amp;amp;0&amp;amp;\cdots&amp;amp;0\&lt;/p&gt;
+
+&lt;p&gt;A&amp;amp;-B&amp;amp;A&amp;amp;0&amp;amp;\cdots&amp;amp;0\&lt;/p&gt;
+
+&lt;p&gt;0&amp;amp;A&amp;amp;-B&amp;amp;A&amp;amp;\cdots&amp;amp;0\&lt;/p&gt;
+
+&lt;p&gt;\vdots&amp;amp;\vdots&amp;amp;\vdots&amp;amp;\vdots&amp;amp;\vdots&amp;amp;\vdots\&lt;/p&gt;
+
+&lt;p&gt;0&amp;amp;0&amp;amp;0&amp;amp;A&amp;amp;-B&amp;amp;A\&lt;/p&gt;
+
+&lt;p&gt;0&amp;amp;0&amp;amp;0&amp;amp;0&amp;amp;A&amp;amp;-B\&lt;/p&gt;
+
+&lt;p&gt;\end{matrix}&lt;/p&gt;
+
+&lt;p&gt;\right]&lt;/p&gt;
+
+&lt;p&gt;\left[&lt;/p&gt;
+
+&lt;p&gt;\begin{matrix}&lt;/p&gt;
+
+&lt;p&gt;F_1\&lt;/p&gt;
+
+&lt;p&gt;F_2\&lt;/p&gt;
+
+&lt;p&gt;F_3\&lt;/p&gt;
+
+&lt;p&gt;\vdots\&lt;/p&gt;
+
+&lt;p&gt;F_{I-1}\&lt;/p&gt;
+
+&lt;p&gt;F_{I}\&lt;/p&gt;
+
+&lt;p&gt;\end{matrix}&lt;/p&gt;
+
+&lt;p&gt;\right]&lt;/p&gt;
+
+&lt;p&gt;=&lt;/p&gt;
+
+&lt;p&gt;\left[&lt;/p&gt;
+
+&lt;p&gt;\begin{matrix}&lt;/p&gt;
+
+&lt;p&gt;K_1\&lt;/p&gt;
+
+&lt;p&gt;K_2\&lt;/p&gt;
+
+&lt;p&gt;F_3\&lt;/p&gt;
+
+&lt;p&gt;\vdots\&lt;/p&gt;
+
+&lt;p&gt;K_{I-1}\&lt;/p&gt;
+
+&lt;p&gt;K_{I}\&lt;/p&gt;
+
+&lt;p&gt;\end{matrix}&lt;/p&gt;
+
+&lt;p&gt;\right]
+$$
+采用Thomas方法求解上面的三对角阵即可。&lt;/p&gt;
+
+&lt;h6 id=&quot;二维热传导方程数值求解的隐格式优化&quot;&gt;二维热传导方程数值求解的隐格式优化&lt;/h6&gt;
+
+&lt;p&gt;我们将2.3节中所述的差分方程组变为隐格式，只需将方程式$(1)$更改为：
+\(\frac{F^{n+1}_{i,j}-F^n_{i,j}}{\Delta t}=a\big(\frac{\frac{F^{n}_{i+1,j}+F^{n+1}_{i+1,j}}{2}-(F^n_{i,j}+F^{n+1}_{i,j})+\frac{F^n_{i-1,j}+F^{n+1}_{i-1,j}}{2}}{h^2}+\frac{\frac{F^n_{i,j+1}+F^{n+1}_{i,j+1}}{2}-(F^n_{i,j}+F^{n+1}_{i,j})+\frac{F^n_{i,j-1}+F^{n+1}_{i,j-1}}{2}}{h^2}\big)\)
+求解该隐格式的差分方程，只需用2.4节中所述的方法：matlab编程，从小到大枚举$n$，逐一递推求出$F^n$。隐格式差分方程较显格式更为复杂，但由于在空间导数上使用了$n$和$n+1$时刻的平均值，其推进求解更为稳定，能更精确地模拟热传导的实际情况。&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 31 Dec 2021 00:00:00 -0800</pubDate>
+        <link>http://localhost:4000/2021/12/31/%E5%88%A9%E7%94%A8%E7%83%AD%E4%BC%A0%E5%AF%BC%E6%96%B9%E7%A8%8B%E5%A4%84%E7%90%86%E6%95%B0%E5%AD%97%E5%9B%BE%E5%83%8F/</link>
+        <guid isPermaLink="true">http://localhost:4000/2021/12/31/%E5%88%A9%E7%94%A8%E7%83%AD%E4%BC%A0%E5%AF%BC%E6%96%B9%E7%A8%8B%E5%A4%84%E7%90%86%E6%95%B0%E5%AD%97%E5%9B%BE%E5%83%8F/</guid>
+        
+        <category>数学物理方法</category>
+        
+        <category>图像处理</category>
+        
+        <category>Matlab</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>The Infinite Variety of Music</title>
+        <description>&lt;h1 id=&quot;the-infinite-variety-of-music&quot;&gt;《The Infinite Variety of Music》&lt;/h1&gt;
+
+&lt;p&gt;勃拉姆斯和贝多芬一脉相承&lt;/p&gt;
+
+&lt;p&gt;这些批评者们应该可以从贝多芬的作品中领略到，从“几乎无”中可以孕育无比美丽而有力量的结构
+他们应该知道在贝五首乐章中那三个G和一个降E
+舞蹈着，挣扎着被发展开来
+成为音乐史上的一座丰碑
+他们也应该知道，贝多芬伟大的音乐精神可以从贝七第二乐章中那几个看似死气沉沉的重复的音符
+构筑成一个辉煌的慢乐章
+这些批评者们也应该知道，希腊的神庙都只是由平平无奇的石块堆砌而成
+这些建筑永恒的美并不在于构成它的单个石块
+而在于把这些巨石组合起来的美丽想象
+这就是原创性
+原创性不仅仅是想出一段旋律，和弦，或是花哨的配器&lt;/p&gt;
+
+&lt;p&gt;勃拉姆斯和贝多芬一样都是交响作家
+他们有着与生俱来的交响创造力和音乐建筑力”&lt;/p&gt;
+</description>
+        <pubDate>Fri, 31 Dec 2021 00:00:00 -0800</pubDate>
+        <link>http://localhost:4000/2021/12/31/The-Infinite-Variety-of-Music/</link>
+        <guid isPermaLink="true">http://localhost:4000/2021/12/31/The-Infinite-Variety-of-Music/</guid>
+        
+        <category>古典乐</category>
+        
+        <category>贝多芬</category>
+        
+        <category>勃拉姆斯</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>对于特里福诺夫演奏的肖邦《F小调第二钢琴协奏曲》的赏析</title>
+        <description>&lt;h3 id=&quot;摘要&quot;&gt;摘要&lt;/h3&gt;
+
+&lt;p&gt;《F小调第二钢琴协奏曲》是由肖邦作曲，于1830年3月17日在华沙首演的一部深情的作品。本文将对现代钢琴家特里福诺夫演奏的，指挥家，钢琴家普列特涅重新配器的版本（出自专辑《Chopin Evocations》）进行一些简单的赏析，简要谈谈一些笔者在多次聆听之后的想法。本文的赏析将结合钢琴家的处理和技法，重点关注全曲的感情色彩。&lt;/p&gt;
+
+&lt;h3 id=&quot;创作背景&quot;&gt;创作背景&lt;/h3&gt;
+
+&lt;p&gt;虽然《F小调第二钢琴协奏曲》创作的时间早于《E小调第一钢琴协奏曲》，但是它出版的时间比第一钢协晚了三年，所以编号在第一钢协之后。在肖邦举行第二钢协的首演后不久，他就携带着一杯朋友们赠送的波兰泥土离开了华沙、离开了祖国。造化弄人，从此之后肖邦再也没有回到过他深爱的祖国。再来看创作的社会背景，十八世纪末到十九世纪中期的这一段时间，普鲁士王国，奥地利帝国和俄罗斯帝国不断扩张，再加上波兰国力贫弱，波兰不断被列强瓜分。但是，坚强的波兰人民用他们的爱国热情和崇高的民族意志，和侵略者进行着旷日持久的斗争。乱世中的文学往往有浓厚的爱国主义色彩，此时波兰的文化思想界不同的思想百花齐放。但是这些艺术家们都主张艺术作品都要有鲜明的民族个性。当时肖邦的老师深受这种思想的影响，这种影响也自然而然地传到了肖邦的身上。肖邦作品中的民族特色十分浓厚，从活泼可爱的玛祖卡，到充满力量感的《革命练习曲》再到辉煌壮丽的波兰舞曲（波罗乃兹）无一不体现着肖邦对祖国深沉的热爱，这首《第二钢琴协奏曲》也是一样。创作《第二钢协》时的肖邦，正在经历他整个人生中最快乐，最无忧无虑的金子般的日子。当时的肖邦，正是青年男女情窦初开的年纪。这首曲子虽然没有题献给他的初恋情人康斯坦歇尔，但是肖邦在写作时，是时时刻刻念着她的。可惜的是，由于肖邦生性羞怯，始终不敢向心上人倾诉爱意，痴情的暗恋并没有好的结果，也正是因为如此，这首曲子才更加的扣人心弦。肖邦曾经在一封给友人的信中写道：“写这首舒缓的协奏曲时，我的心绪始终和她在一起。”&lt;/p&gt;
+
+&lt;h3 id=&quot;作品赏析&quot;&gt;作品赏析&lt;/h3&gt;
+
+&lt;p&gt;对于本作品的演绎，笔者偏好的是特里福诺夫的版本，特里福诺夫作为俄罗斯的新一代钢琴家，有着深沉而浓厚的自省气质。同时，他的乐感十分惊人，对于肖邦作品的演绎经常让人耳目一新，在他对这部《第二钢协》的演绎之中，我们既能听见肖邦爱不能至的惆怅，也能领略到作曲家爱国的一腔热血。而普列特涅夫的改编，更是使原先饱受争议的配器更添光彩。这次的演绎，不光是对肖邦气质的完美诠释，更是俄罗斯乐坛新老二位明星的交相辉映。&lt;/p&gt;
+
+&lt;h4 id=&quot;1第一乐章-maestoso高贵而庄严地f小调44拍奏鸣曲式&quot;&gt;1.第一乐章 Maestoso（高贵而庄严地）F小调，4/4拍，奏鸣曲式&lt;/h4&gt;
+
+&lt;p&gt;这是一个快乐豪壮的乐章，乐章的开头，由管乐奏出一段奇特而富有趣味的下行旋律，引出了由弦乐奏出的优美流畅的第一主题。随后双簧管衔接以降A大调的第二主题，并引出独奏钢琴的登场。钢琴登场后，先是对之前出现的两个主题稍作提示，紧接着音乐进入发展部，以钢琴的动机式展开作为中心。经过再现部后，以第一主题的尾奏告终。
+钢琴一进入，音乐的色彩就从原先的优雅大方和自然淳朴变得晶莹剔透，掺杂着一些青年人独有的“剪不断，理还乱”的复杂情愫。这一段音乐的大部分时间，钢琴弹得极其轻柔，在保证清澈的颗粒感的同时，似乎又有着一种藕断丝连的感觉。同时，弦乐的声音在发展部的大部分时间里细不可闻，肖邦固执地命令钢琴反复地，孤独地低吟浅唱。这一段为各大音乐家所反复诟病，因为肖邦以一种固执的态度破坏了协奏曲中钢琴和乐队的基本平衡。在普列特涅夫改编的版本里，这种不平衡得到了修正，但是还是保留了一些特色。笔者个人非常喜欢这种处理，因为作为“钢琴诗人”的肖邦，对钢琴的偏爱是显然的。而此时的作曲家刚刚结束了学生时代，对位法和配器的掌握还不纯熟，不管是有心还是无意，钢琴的独角戏码，像极了因为初恋而辗转反侧的年轻人，生怕别人打搅了他的真情流露。给这部作品添加了许多弦外之音。&lt;/p&gt;
+
+&lt;h4 id=&quot;2第二乐章-larghetto小广板降a大调-44拍-三段式&quot;&gt;2.第二乐章 Larghetto（小广板）降A大调 4/4拍 三段式&lt;/h4&gt;
+
+&lt;p&gt;和第一号协奏曲一样，第二钢协的第二乐章具有夜曲风的，甜蜜的主题，这个乐章是由肖邦对康斯坦歇尔甜蜜的，缱绻的深情编织而成的，充满了爱的憧憬和温婉的感情，这个乐章也是笔者最爱的一章，所以会用较大的篇幅着重谈谈笔者的感受。因为手边查不到总谱和钢琴分谱，所以不得已只能用时间点来讲述。
+乐队开始的一小段引子之后，钢琴慢慢地奏出一段优美纤弱的主题，用钢琴家本人的话说，这一段主题有着不可思议的丝绸般的顺滑感，弹奏这一段主题的时候手指必须完全放松，没有任何紧张感。他也的确是这么做的，在特里福诺夫的演绎中，主题中的每一个上行，都是那么的轻柔，但是却让人感觉心头被人轻轻挠了一下，这一段给人的感觉就是一艘小船漂浮在泛着点点涟漪的水面上缓缓摇晃，像极了暗恋时的心中的每一次悸动。弦乐在背景中若隐若现的铺垫，给整幅画面填上了一抹淡淡的，天真纯粹的色彩。3分钟左右开始的快速跑动的高音弱奏，丝线一样轻柔，但保持着鲜明的颗粒性，高超的技巧让人怀疑这是竖琴在演奏。这美梦一般的景色一直持续到5分钟左右，这时乐队突然走到台前，钢琴从低音区开始奏出三段强有力的模进，带有极强的情节性和歌剧感。突然被惊醒的美梦让人心头一震。钢琴家对紧接着的两个乐句的起始处理仿佛齐默尔曼一样醒目，但是又是截然不同的两种音色，第一次听的时候实在是太过惊艳。之后热情的中段出现，开头是一段气概高贵的宣叙调一般的旋律。接着一段略显阴暗和压抑的中低音区连续跑动和狂风裹挟着的海潮袭来一般的颤音，和之前的柔美形成了强烈的对比。要知道，肖邦是波兰人，波兰民族骨子里是有一种英雄精神的。柔美的法式情调是不足以概括肖邦的全部的。柔中带刚的中段正是肖邦热血的体现。之后的7分半左右的rubato，特里福诺夫用了足足两秒的停顿，在那一瞬一切都仿佛静止了下来，之后的极慢的弱奏下行就好像是凝固世界中唯一运动着的东西，这是美梦惊醒、情绪宣泄后的眼泪，顺着脸颊缓缓无声地流下来。在这个过程中，那一滴晶莹的水珠不断失温、变形，最后以细不可闻的声音掉落在了地板上。第一主题再次出现，但是情绪有了一些变化，特里福诺夫本人对此的描述是：“倾盆大雨，但是有着耀眼的阳光。”9分钟的时候巴松奏出一段主旋律，这是普列特涅夫的神来之笔，也是笔者最喜欢的一段。这一段将木管乐器温暖厚重的音色完美发挥了出来，仅论表现力而言堪比《春之祭》开头的solo。钢琴的弱拍刚好被包裹在巴松的强拍里，到了强拍又飘浮上来，起起伏伏，是世界上最自然、也是最美丽的律动。像是梦幻的泡沫，在大海上随着海浪摇曳，同时太阳在上面投上温暖的凝视。乐章的最后一颗高音音符，就这样被裹在乐队绵长的伴奏中，最迟出现，最早消失，但是似乎留下了不能磨灭的影子。&lt;/p&gt;
+
+&lt;h4 id=&quot;3allegro-vivace活泼的快板e小调-34拍-回旋曲&quot;&gt;3.Allegro vivace（活泼的快板）E小调 3/4拍 回旋曲&lt;/h4&gt;
+
+&lt;p&gt;这是一段瑰丽灿烂的终曲，钢琴奏出圆舞曲风味的回旋曲主题，再以降A大调玛祖卡舞曲风的第二主题交相辉映，这是一段深刻缠绵的旋律，具有浓厚的波兰地方色彩，最后是华丽的尾奏。琴声中满是翩然起舞的冲动，摇摆的节奏，高涨的热情，踩着节奏的踏步声和拍手声，是欣喜若狂而又久久不愿散去的梦境，还是对爱情的渴求与期待，只有肖邦自己知道了。&lt;/p&gt;
+
+&lt;h3 id=&quot;参考文献&quot;&gt;参考文献&lt;/h3&gt;
+
+&lt;p&gt;【1】邵义强 《浪漫派乐曲赏析》河北教育出版社
+【2】Daniel Triffnov Mikhail Pletnev《Chopin Evocations》&lt;/p&gt;
+</description>
+        <pubDate>Sun, 17 Oct 2021 00:00:00 -0700</pubDate>
+        <link>http://localhost:4000/2021/10/17/%E5%AF%B9%E4%BA%8E%E7%89%B9%E9%87%8C%E7%A6%8F%E8%AF%BA%E5%A4%AB%E6%BC%94%E5%A5%8F%E7%9A%84%E8%82%96%E9%82%A6-F%E5%B0%8F%E8%B0%83%E7%AC%AC%E4%BA%8C%E9%92%A2%E7%90%B4%E5%8D%8F%E5%A5%8F%E6%9B%B2-%E7%9A%84%E8%B5%8F%E6%9E%90/</link>
+        <guid isPermaLink="true">http://localhost:4000/2021/10/17/%E5%AF%B9%E4%BA%8E%E7%89%B9%E9%87%8C%E7%A6%8F%E8%AF%BA%E5%A4%AB%E6%BC%94%E5%A5%8F%E7%9A%84%E8%82%96%E9%82%A6-F%E5%B0%8F%E8%B0%83%E7%AC%AC%E4%BA%8C%E9%92%A2%E7%90%B4%E5%8D%8F%E5%A5%8F%E6%9B%B2-%E7%9A%84%E8%B5%8F%E6%9E%90/</guid>
+        
+        <category>古典乐</category>
+        
+        <category>肖邦</category>
+        
+        <category>特里福诺夫</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>营业通告</title>
+        <description>&lt;h1 id=&quot;营业通告&quot;&gt;营业通告&lt;/h1&gt;
+
+&lt;p&gt;归终的厨房今日开始营业啦！&lt;/p&gt;
+
+&lt;p&gt;这篇文章使用&lt;a href=&quot;https://www.typora.io/&quot;&gt;typora&lt;/a&gt; 编辑&lt;/p&gt;
+
+&lt;p&gt;做这个网站的初心是记录自己学习的内容，也是为了把自己的兴趣和事业分享给更多的人，希望这个“归终的厨房”做出来的菜是符合大众口味的；是新鲜有趣的；是富有营养的。&lt;/p&gt;
+
+&lt;p&gt;“有一分热，发一分光，就令萤火一般，也可以在黑暗里发一点光，不必等候炬火。此后如竟没有炬火：我便是唯一的光。”&lt;/p&gt;
+
+&lt;p&gt;这第一篇文章，就大概叙述一下这个网站最初的理念吧。&lt;/p&gt;
+
+&lt;h2 id=&quot;六合引之为骨&quot;&gt;“六合引之为骨”&lt;/h2&gt;
+
+&lt;p&gt;这个网站后续主要的文章将是关于机械工程和力学的，但是我是一个贪心且不知足的人，总是想要多接触一些不同方面的知识，增长一些不同领域的见闻，所以这个网站也会更新一些关于西洋古典乐、机器学习、欧洲浪漫派文学以及计算方法的文章。我相信广泛地学习和发展将会是当代大学生的必要素质，不能只专注于眼前的苟且，也要看到诗和远方。&lt;/p&gt;
+
+&lt;h2 id=&quot;八荒韫玉而明&quot;&gt;”八荒韫玉而明“&lt;/h2&gt;
+
+&lt;p&gt;这个网站和我一样，都是许许多多同类中最普通最不起眼的那一个。尽管石头是那样的平庸，但当岁月漫长的磨炼和捶打让它孕育出玉石的光辉时，它也会有自己的价值和光彩。&lt;/p&gt;
+
+&lt;p&gt;”石韫玉而山辉，水怀珠而川媚。“&lt;/p&gt;
+
+&lt;h2 id=&quot;暝仍不移其辉破而不夺其坚&quot;&gt;“暝仍不移其辉，破而不夺其坚”&lt;/h2&gt;
+
+&lt;p&gt;写作这篇文章的时候，我刚刚从一次大的挫折中走出。朋友对我说，一次失败算不得什么，只要坚持自己的追求和理想，云销雨霁的时刻总会到来的。未来这个网站虽然是不定期更新，但是绝不会断更，这份进步的初心我想是不会变的。&lt;/p&gt;
+
+&lt;h2 id=&quot;驱之长昭天理礼予天地四方&quot;&gt;”驱之长昭天理，礼予天地四方“&lt;/h2&gt;
+
+&lt;p&gt;想传达的最重要的理念：”追求真理，报效祖国。“&lt;/p&gt;
+
+</description>
+        <pubDate>Sun, 17 Oct 2021 00:00:00 -0700</pubDate>
+        <link>http://localhost:4000/2021/10/17/%E8%90%A5%E4%B8%9A%E9%80%9A%E5%91%8A/</link>
+        <guid isPermaLink="true">http://localhost:4000/2021/10/17/%E8%90%A5%E4%B8%9A%E9%80%9A%E5%91%8A/</guid>
+        
+        <category>日志</category>
+        
+        
+      </item>
+    
+  </channel>
+</rss>
